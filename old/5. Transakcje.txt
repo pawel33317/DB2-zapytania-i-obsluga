@@ -1,0 +1,59 @@
+WIDOKIIIIIIIIIIIII
+
+Create TABLE "Koledzy"."studenci" ( "idstudenta" INTEGER NOT NULL, "nazwisko" VARCHAR(25), "ocena" DB2ADMIN.OCENA,PRIMARY KEY ( "idstudenta" ) );
+insert into "Koledzy"."studenci" ("idstudenta", "nazwisko", "ocena") values (1, 'wozniak', 5 );
+insert into "Koledzy"."studenci" ("idstudenta", "nazwisko", "ocena") values (3, 'czubak', 3);
+
+create or replace view view22 as select "nazwisko", "idstudenta" from "Koledzy"."studenci" where "idstudenta" <  5;
+create or replace view view33 as select "nazwisko", "idstudenta" from view22 with cascaded check option;
+insert into view22 values('abc',666); //OKKK
+insert into view33 values('abc',667); //ZLE bo sprawdza warunki Wiersz wynikowy operacji wstawiania lub aktualizacji nie jest zgodny z definicj¹ widoku
+
+		create table tab11 (c1 integer, c2 char(5))
+		create or replace view view11 as select c1, c2 from tab11 where c1 <  6#		
+		create or replace view view13 as select c1, c2 from view11 with cascaded check option;
+
+
+poziom domyœlny cs zak³ada blokady na wiersze bior¹ce udzia³ w transakcji update
+cs+cc nie blokuje czytaj¹cego zaklada tylko blokade na instrukcje czytaj¹ce 
+
+
+TRANSAKCJEEEEEEEEEEEEEE
+
+transakcja poziomy izalacji
+tran.pdf str 190
+odpalamy 2 okna 
+na obu ustawiamy sie na ta sam¹ instancjê
+set db2instance=db2sr
+
+w 1 oknie 
+	db2 connect to SAMPLE 
+	db2 "create table TB1 (COLUMN1 integer)"
+	db2 "insert into TB1 (select 10 from syscat.tables fetch first 9 rows only)"  //kopiuje z jakiejs tabeli do naszej 10 rekordów
+	db2 get db cfg for sample 
+	db2 update db cfg for sample using cur_commit disabled 
+	db2 +c //rozpoczynamy transakcjê i nie zamykamy jej
+	
+	list command options 
+	connect to sample
+	select * froma tb1;
+	update tb1 set column1 = 20 
+
+	Tranzakcja nadal nie jest zamkniêta
+
+teraz w drugim terminalu
+	db2 connect to sample
+	db2 "select * from tb1" 
+
+
+	nie wyœwietli nic bo czeka na zakoñczenie transakcji z drugiego terminala
+
+
+	w tym pierwszym terminalu wpisujemy commit czyli koñczymy dane zapytanie transakcjê i wyskakuj¹ okienka
+
+
+
+
+
+
+

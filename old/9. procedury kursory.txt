@@ -1,0 +1,67 @@
+db2 update dbm cfg using svcename db2c_DB2SR
+port 50022
+
+
+
+////////////////////////
+///////PROCEDUTY////////
+////////////////////////
+datastudio --> sample --> obiekty aplikacji -> procedury sk³adowane ->ppm i nowa 
+
+CREATE PROCEDURE PIERWSZA (IN Z1 INT,IN Z2 INT, OUT Z3 INTEGER)
+P1: BEGIN
+	SET Z3=Z1+Z2;
+END P1
+
+ppm i wdra¿aj 
+play
+ppm i uruchom
+
+teraz odpalamy ja z terminala
+db2 get instance
+db2 connect to sample 
+db2 call PIERWSZA(1,1,?)
+
+
+
+//inna procedura w db2 
+//P1 jest od przeci¹¿eñ tak jak w programowaniu
+CREATE PROCEDURE ZZZ (IN Z1 INT,IN Z2 INT, OUT Z3 INTEGER)
+P1: BEGIN
+	DECLARE w1 INT;
+	DECLARE w2 INT;
+	DECLARE w3 INT;
+	
+	set w1 = 20;
+	set w2 = 10;
+	
+	call PIERWSZA(w1,w2,w3);
+	set Z3 = Z1*Z2*w3;
+	
+END P1
+
+
+//////////////////////
+Opracowaæ procedurê z 2 parametrami wejœciowymi departament i stanowiskoPracy
+w której to procedurze bêdzie zdefiniowany kursor wyliczaj¹cy ilu mamy pracowników 
+pracuj¹cych w danym departamencie na danym stanowisku
+z kursora wartoœæ przelaæ do zmiennej i zwróciæ przez parametr wyjœciowy
+	w przypadku braku pracowników pracuj¹cych w danym departamencie na 
+	danym stanowisku zwróciæ wartoœæ 0 
+
+CREATE PROCEDURE ZZZ (IN DEPARTMENT INT,IN STANOWISKO INT, OUT ILOSCPRACOWNIKOW INTEGER)
+P1: BEGIN
+	DECLARE cur1 CURSOR FOR SELECT EMPNO FROM employee WHERE workdept = DEPARTMENT and job = STANOWISKO;
+
+
+	DECLARE w1 INT;
+	DECLARE w2 INT;
+	DECLARE w3 INT;
+	
+	set w1 = 20;
+	set w2 = 10;
+	
+	call PIERWSZA(w1,w2,w3);
+	set Z3 = Z1*Z2*w3;
+	
+END P1

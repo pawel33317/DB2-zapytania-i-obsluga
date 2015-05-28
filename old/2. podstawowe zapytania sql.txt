@@ -1,0 +1,68 @@
+db2cDB2SR     	50019/tcp   # Connection port for DB2 instance DB2JEE1
+db2cDB2SRssl      50020/tcp   # Connection port for DB2 instance DB2DB
+db2 update dbm cfg using svcename db2cDB2SR
+db2 update dbm cfg using ssl_svcename db2cDB2SRssl
+
+
+		1podać nazwisko i imiona pracowników zaczynające się na literę od c do s;
+		select firstnme, lastname from employee where LCASE(substr(firstnme,1,1)) >= 'c' and LCASE(substr(firstnme,1,1)) <= 's';
+		
+		
+		2podać pracowników których pensja z dodatkiem prowizji jest większa od 50tys i sa kobietami
+		select * from employee where (salary + bonus) > 50000;
+
+		
+		3podać czas i datę zegara systemowego 
+		SELECT (current date) as data, (current time) as czas FROM employee limit 1;
+
+		
+		4podaj w jakim dziale pracuje pracownik i uporzadkuj malejąco po dziale i rosnąco po nazwisku ograniczając liczbę krotek do działów zaczynających się na literę od a do s 
+		select firstnme, lastname, workdept from employee where LCASE(substr(workdept,1,1)) >= 'a' and LCASE(substr(workdept,1,1)) <= 's' order by workdept desc, lastname asc;
+
+		
+		5czy jest dział firmy w którym nie pracuję
+		SELECT DB2ADMIN.DEPARTMENT.DEPTNO, DEPCOUNT.ILOSC
+  				FROM DB2ADMIN.DEPARTMENT full JOIN (
+           		  	SELECT WORKDEPT, COUNT(*) AS ILOSC FROM DB2ADMIN.EMPLOYEE
+                        GROUP BY WORKDEPT) AS DEPCOUNT ON DB2ADMIN.DEPARTMENT.DEPTNO = DEPCOUNT.WORKDEPT Where DEPCOUNT.ILOSC is null;
+		select d.deptname, e.lastname from DEPARTMENT d left join EMPLOYEE e on d.deptno = e.workdept where e.lastname is null;
+		select d.deptname, e.lastname from EMPLOYEE e right join DEPARTMENT d on d.deptno = e.workdept where e.lastname is null;
+		select d.deptname from DEPARTMENT d where d.deptno not in (select distinct workdept from employee);
+		############################having narzuca kryterium na agregacji a where na krotki										
+
+		6wyswietlić pracowników oraz obok ich zastępców na tym samym stanowisku. 
+		select e.firstnme "IMIĘ PRACOWNIKA", e.lastname "NAZWISKO PRACOWNIKA", e.job "STANOWISKO",
+		e1.firstnme "IMIĘ ODPOWIEDNIKA",e1.lastname "NAZWISKO ODPOWIEDNIKA" from db2admin.employee e 
+		inner join db2admin.employee e1 on  e.job=e1.job where e.lastname < e1.lastname;
+
+
+		7ilu pracowników pracuje w danym dziale 
+		SELECT DB2ADMIN.DEPARTMENT.DEPTNO, DEPCOUNT.ILOSC
+  		FROM
+       		DB2ADMIN.DEPARTMENT FULL OUTER JOIN (
+           		                   SELECT WORKDEPT, COUNT(*) AS ILOSC
+                        		        FROM DB2ADMIN.EMPLOYEE
+                        		        GROUP BY WORKDEPT) AS DEPCOUNT ON DB2ADMIN.DEPARTMENT.DEPTNO = DEPCOUNT.WORKDEPT;
+
+
+		8podaj jaki pracownik ma pensje większą od średniej penski liczonej ze wszystkich pracowników
+		select * from employee where salary > (select AVG(salary) from employee);
+
+		
+		9wybrac wszystkich pracownkoow ktorzy zarabiają więcej niż ktokolwiek w departamencie a00
+		select * from employee where salary > (SELECT max(salary) from employee where workdept = 'A00');
+		select e.lastname, e.firstnme, e.salary from db2admin.employee e where e.salary > ANY(select distinct salary from employee where workdept in 'A00') order by salary;
+		##########################distinct eliminuje powtórzenia
+		##########################różnica między in a =  w in wiele wartości
+		##########################relacje budujemy w zapytaniach
+		
+		
+		10 wybrać stanowisko na którym sa najnizsze średnie zarobki
+		select * from (select job, sum(salary) as suma, count(*) as ilosc, (sum(salary)/count(*)) as avgg from employee group by job)
+			where avgg = (select min(avgg) from (select job, sum(salary) as suma, count(*) as ilosc, (sum(salary)/count(*)) as avgg from employee group by job));
+		select job aaa , avg(salary) zzz from employee group by job 
+		having avg(salary) in ( select min(zzz) from (select job aaa , avg(salary) zzz from employee group by job order by 2 asc) xxx )
+
+
+
+

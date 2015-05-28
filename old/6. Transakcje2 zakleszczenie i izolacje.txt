@@ -1,0 +1,136 @@
+currently commmited pozwala tylko odczytac tylko zkomitowane zapytania w przeciwieñstwie do coursor stability czyli ktos co czyta odbierze stare dane z przed zmian jesli nie by³o comitu
+
+zakleszczenia siê transakcji 
+
+
+in 1
+	db2 LIST TABLES
+	//db2 update db cfg for sample using cur_commit disabled 
+	db2 +c 
+	list command options 
+	connect to sample 
+	update db cfg for sample using cur_commit on 
+	db2 connect reset
+in 2
+	tak bo nie bylo db2 +c --> db2 connect reset
+in 1
+	connect to sample 
+	update tb1 set column1 = 30 
+in 2 
+	db2 "select * from tb1" 
+	WYSWIETLILO STARE REKORDY PRZY cur_commit on
+IN 1 
+	commit
+in 2 
+	time db2 "select * from tb1" 
+	TERAZ SA NOWE REKORDY
+IN 1
+	connect reset 
+IN 2
+	db2 connect reset 
+
+ 
+rrrrrrrrrrrrrepetable read
+in1
+	db2 change isolation to RR 
+	db2 +c
+	connect to sample 
+	select * from tb1 where column1 = 30 
+in2
+	db2 connect to sample 
+	db2 "insert into tb1 values (30)"
+	nie dziala jest blokada 
+in1 
+	commit
+	i zadzialalo na terminalu 2 insert zostal odblokowany
+in1 i 2 
+	connect reset 
+
+rrrrrrrrrrrrREAD STABILITY
+in1
+	change isolation to RS 
+	connect to sample 
+	select * from tb1 where column1 = 30 
+in2 
+	db2 connect to sample 
+	db2 "insert into tb1 values (30)" 
+	zadzialo
+in1
+	select * from tb1 where column1 = 30 
+	dziala
+	commit
+	connect reset
+
+rrrrrrrrrrThe “Uncommitted Read” scenario: Cursor Stability
+	change isolation to RR 
+	connect to sample
+	update tb1 set column1 = 40 
+in2
+	db2 connect to sample 
+	db2 "select * from tb1"   i stoi i czeka ....
+in1 commit i dziala
+in1 i 2 
+connect reset 
+
+rrrrrrrrrrrr The “Uncommitted Read” scenario: Uncommitted Read
+in1
+	update tb1 set column1 = 50 
+in2 
+	db2 change isolation to UR 
+	db2 connect to sample 
+	db2 "select * from tb1" 
+	dziala ok 
+in1 commit
+in1 i 2 connect reset 
+
+----------------------
+----------------------ZAKLESZCZENIE
+----------------------
+in 1,2
+	connect reset
+	change isolation to CS   na obu!!!
+in1,2
+	db2+c
+	connect to sample
+in 1
+	UPDATE department set deptname='dzial1' WHERE DEPTNO = 'A00'
+in2
+	UPDATE employee set salary=2000 where LASTNAME like 'STERN'
+in 2
+	UPDATE department set deptname='dzial1' WHERE DEPTNO = 'A00'
+in1
+	UPDATE employee set salary=2000 where LASTNAME like 'STERN'
+jedn¹ wykona a drug¹ odrzuci
+
+
+
+
+
+
+Transakcje pozwalaj¹ na wykonanie wielu zapytañ jako ca³oœæ – albo wszystko siê uda albo wszelkie efekty s¹ cofniête. W SQL Serwerze transakcje spe³niaj¹ koncepcjê ACID
+(Atomicity Consistency Isolation Durability).
+Atomicity – Czyli wszystko albo nic
+Consistency – Nigdy nie popsujemy nic w danych
+je¿eli transakcja nie bêdzie commitowana
+Isolation – Transakcje siê nawzajem nie widz¹
+Durability – Serwer zapewnia ¿e przywróci stan dransakcji po awarji.
+Izolacja mo¿e byæ realizowana na ró¿ne sposoby. Tylko jeden tryb isolacji transakcji mo¿e byæ ustawiony w danym momencie i obowi¹zuje w ramach ca³ego po³¹czenia.
+READ UNCOMMITTED
+Oznacza, ¿e mo¿na odczytywaæ wiersze zmienione zanim transakcja które je zmieni³a wykona commit. Oznacza to dopuszczenie do „brudnych odczytów”, a wiêc danych które mog¹ nigdy nie zostaæ „oficjalnie” zapisane w bazie, a jedynie byæ efektem dzia³ania transakcji która w efekcie zostanie wycofana.
+READ COMMITTED (opcja domyœlna)
+Przeciwnie do poprzedniego przypadku. Czytamy tylko dane aktualne bez „brudnych odczytów”. Jednak dane mog¹ zostaæ zmodyfikowane w trakcie wykonywania transakcji (na przyk³ad przez innych ¿ytkowników), wtedy wiersz który da³ siê odczytaæ w jednym zapytaniu, mo¿e ju¿ nie istnieæ przy kolejnej próbie jego odczytu.
+REPEATABLE READ
+Odczytujemy tylko dane które zosta³y commitowane, a tak¿e ¿adna transakcja nie ma prawa modyfikowaæ danych które odczytaliœmy. To zapewnia nam powtarzalnoœæ odczytów, ale nie do koñca bo inne zapytania dalej mog¹ insertowaæ dane które spe³niaj¹ warunki zapytañ naszej transakcji. W efekcie mo¿emy znowu dostaæ niespójne odczyty.
+SNAPSHOT (wymaga w³¹czonej opcji ALLOW_SNAPSHOT_ISOLATION w ka¿dej bazie do której referujemy)
+Pracujemy na stanie bazy z pocz¹tku transakcji – nic nie jest w stanie zmodyfikowaæ danych na których pracujemy (brak wad poprzednich trybów).
+SERIALIZABLE
+W tym trybie zak³adane s¹ locki na klucze które wpadaj¹ w zakres zapytañ w naszej transakcji. Czyli inna transakcja nie doda nic do tabeli na której zrobimy SELECT * FROM ….w trakcie naszej transakcji. Dziêki temu zachowujemy spójnoœæ odczytów w trakcie ca³ej transakcji.
+Nale¿y u¿ywaæ tego trybu tylko w ostatecznoœci gdy¿ mo¿e skutecznie zblokowaæ inne zapytania.
+
+
+
+
+
+
+
+

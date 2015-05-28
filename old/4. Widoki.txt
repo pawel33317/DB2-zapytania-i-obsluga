@@ -1,0 +1,16 @@
+WIDOKIIIIIIIIIIIII
+
+Create TABLE SCHEMAT1.STUDENCI ( IDSTUDENTA INTEGER NOT NULL, NAZWISKO VARCHAR(25), OCENA DB2ADMIN.TYPDANYCH1,PRIMARY KEY ( IDSTUDENTA ));
+insert into SCHEMAT1.STUDENCI (IDSTUDENTA, NAZWISKO, OCENA) values (1, 'wozniak', '5');
+insert into SCHEMAT1.STUDENCI (IDSTUDENTA, NAZWISKO, OCENA) values (3, 'czubak', '3');
+
+CREATE OR REPLACE VIEW WIDOK22 AS SELECT NAZWISKO, IDSTUDENTA FROM SCHEMAT1.STUDENCI WHERE IDSTUDENTA <  5;
+
+CREATE OR REPLACE VIEW WIDOK33 AS SELECT NAZWISKO, IDSTUDENTA FROM SCHEMAT1.STUDENCI WHERE IDSTUDENTA <  5 WITH CASCADED CHECK OPTION;
+
+INSERT INTO WIDOK22 VALUES('abc',666); //OKKK
+INSERT INTO WIDOK33 VALUES('abc',667); //ZLE bo sprawdza warunki Wiersz wynikowy operacji wstawiania lub aktualizacji nie jest zgodny z definicj¹ widoku
+
+		create table tab11 (c1 integer, c2 char(5))
+		create or replace view view11 as select c1, c2 from tab11 where c1 <  6#		
+		create or replace view view13 as select c1, c2 from view11 with cascaded check option;

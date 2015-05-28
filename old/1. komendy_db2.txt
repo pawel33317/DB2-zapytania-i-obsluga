@@ -1,0 +1,50 @@
+db2ilist					listujemy instancje
+db2icrt	db2sr					tworzymy instancje db2sr
+set db2instance=db2sr				ustawiamy siê na instancjê db2sr			
+db2 get instance				sprawdzamy na jakiej instancji jesteœmy
+db2start					uruchamiamy instancjê
+db2sampl -sql -xml				tworzymy bazê sample -relacyjna -hierarchiczna
+db2 connect to sample				ustawiamy siê na bazê sample
+db2 "select * from emplyee"			wyœwietlamy rekordy
+db2 list db directory				lista baz i info
+db2 connection state				stan po³¹czenia z baz¹
+db2 terminate					os³¹czamy siê od bazy
+db2 ? backump					info
+db2 get dbm cfg					parametry instancji
+db2level					wersja
+db2set -all					parametry instancji œcie¿ki port...
+db2set db2comm=tcpip				instancja bedzie na tcpip w³¹czamy komunikacjê
+db2stop						stopujemy instancjê
+
+	odpalamy notatnik jako admin
+	edytujemy services w C:\Windows\System32\drivers\etc
+	na koniec pliku dopisujemy:
+		db2c_DB2SR	50015/tcp
+		db2c_DB2SRssl	50016/tcp
+
+db2start
+db2 update dbm cfg using svcename db2_DB2SR	
+db2 update dbm cfg using ssl_svcename db2_DB2SRssl
+db2stop
+db2start
+db2 get database manager configuration | findstr /i svce		info o protokole i nazwie
+
+db2 LIST DATABASE DIRECTORY --> pokazuje bazy danych
+db2idrop					usuwa instancjê
+
+
+	db2po -osinfo					nie dzia³a
+	db2cc						graficzne centrum sterowania nie ma w express
+	db2 values application_id()			jakieœ info
+	db2 list application				jaki user
+	db2 values current user				jaki user
+	db2licm -l 					licencja db2
+
+
+db2cDB2SR     		50019/tcp   # Connection port for DB2 instance DB2JEE1
+db2cDB2SRssl      	50020/tcp   # Connection port for DB2 instance DB2DB
+db2 update dbm cfg using svcename db2cDB2SR
+db2 update dbm cfg using ssl_svcename db2cDB2SRssl
+
+db2 LIST DATABASE DIRECTORY --> pokazuje bazy danych
+db2 connect to pawel

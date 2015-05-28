@@ -1,0 +1,33 @@
+db2cDB2SR     	50019/tcp   # Connection port for DB2 instance DB2JEE1
+db2cDB2SRssl      50020/tcp   # Connection port for DB2 instance DB2DB
+db2 update dbm cfg using svcename db2cDB2SR
+db2 update dbm cfg using ssl_svcename db2cDB2SRssl
+
+
+CREATE DATABASE PAWEL AUTOMATIC STORAGE YES ;
+db2 connect to pawel
+db2 create distinct type db2admin.ocena as integer with comparisons
+
+
+
+
+db2 LIST DATABASE DIRECTORY --> pokazuje bazy danych
+db2 connect to pawel
+
+Stworzyliœmy bazê w data studio
+CREATE DATABASE PAWEL AUTOMATIC STORAGE YES;
+
+pawel --> obiekty aplikacji --> typy zdefiniowane --> utwórz odrêbny typ ...
+db2 create distinct type db2admin.ocena as integer with comparisons
+
+schematy --> utwóz schemat
+CREATE SCHEMA "Koledzy";
+genaruj --> wdró¿ ...
+
+tabele --> utwórz tabele --> schemat koledzy --> 
+	nazwa studenci
+	tabele ...
+	CREATE TABLE "Koledzy"."studenci" ( "idstudenta" INTEGER NOT NULL, "nazwisko" VARCHAR(25), "ocena" DB2ADMIN.OCENA,PRIMARY KEY ( "idstudenta" ) );
+			utworzyæ schemat koledzy a nastêpnie w schemacie tym za³o¿yæ tabelê studenci z kolumnami idstudenta typ danych integer
+			za³o¿yæ klucz podstawowy ,,nazwisko varchar (25), ocena w³asny zdefiniowany typ ocena
+
