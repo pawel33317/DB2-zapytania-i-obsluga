@@ -1,0 +1,316 @@
+////////////////////////////////
+//////////PODSTAWOWE////////////
+////////////////////////////////
+db2ilist						listujemy instancje
+db2icrt	db2tt					tworzymy instancje db2sr
+set db2instance=db2tt			ustawiamy siê na instancjê db2tt
+db2 get instance				sprawdzamy na jakiej instancji jesteœmy
+db2start						uruchamiamy instancjê
+db2sampl -sql -xml -name bazatt		tworzymy bazê sample -relacyjna -hierarchiczna -nazwa
+
+db2 connect to bazatt			ustawiamy siê na bazê sample
+db2 "select * from employee"	wyœwietlamy rekordy
+db2 list db directory			lista baz i info
+	db2 connection state			stan po³¹czenia z baz¹
+db2 terminate					os³¹czamy siê od bazy
+	db2 ? backump					info
+	db2 get dbm cfg					parametry instancji
+	db2level					wersja
+db2set -all						parametry instancji œcie¿ki port...
+		db2 LIST DATABASE DIRECTORY     pokazuje bazy danych
+		db2idrop						usuwa instancjê
+////////////////////////////////
+//////////TCP/IP PORT///////////
+////////////////////////////////
+db2set db2comm=tcpip			instancja bedzie na tcpip w³¹czamy komunikacjê
+db2stop							stopujemy instancjê
+odpalamy notatnik jako admin
+	edytujemy services w C:\Windows\System32\drivers\etc
+	na koniec pliku dopisujemy:
+	db2c_DB2TT	50050/tcp
+	db2c_DB2TTssl	50051/tcp
+db2start
+db2 update dbm cfg using svcename db2_DB2TT	
+db2 update dbm cfg using ssl_svcename db2_DB2TTssl
+db2stop
+db2start
+db2 get database manager configuration | findstr /i svce	info o protokole i nazwie
+DB2STUDIO
+Perspektywa --> Administrowanie baz¹ danych
+PPM na Wszystkie bazy danych Utwórz now¹
+W oknie:
+DB2 dla systemów Linux, Unix i Windows
+Sterownik IBM domyœlny
+baza danych: bazatt
+port: 50050
+user: db2admin
+haslo: hasloxxx lub IBMadmin
+Zapisz has³o !!!
+Testuj po³¹czenie
+Zakoñcz
+////////////////////////////////
+/////////NIEPRZYDATNE///////////
+////////////////////////////////
+db2po -osinfo					nie dzia³a
+db2cc							graficzne centrum sterowania nie ma w express
+db2 values application_id()		jakieœ info
+db2 list application			jaki user
+db2 values current user			jaki user
+db2licm -l 						licencja db2
+////////////////////////////////
+////////ZAPYTANIA DB2///////////
+////////////////////////////////
+1podaæ nazwisko i imiona pracowników zaczynaj¹ce siê na literê od c do s;
+	select firstnme, lastname from employee where LCASE(substr(firstnme,1,1)) >= 'c' and LCASE(substr(firstnme,1,1)) <= 's';
+2podaæ pracowników których pensja z dodatkiem prowizji jest wiêksza od 50tys i sa kobietami
+	select * from employee where (salary + bonus) > 50000;
+3podaæ czas i datê zegara systemowego 
+	SELECT (current date) as data, (current time) as czas FROM employee limit 1;
+4podaj w jakim dziale pracuje pracownik i uporzadkuj malej¹co po dziale i rosn¹co po nazwisku ograniczaj¹c liczbê krotek do dzia³ów zaczynaj¹cych siê na literê od a do s 
+	select firstnme, lastname, workdept from employee where LCASE(substr(workdept,1,1)) >= 'a' and LCASE(substr(workdept,1,1)) <= 's' order by workdept desc, lastname asc;
+5czy jest dzia³ firmy w którym nie pracujê
+	SELECT DB2ADMIN.DEPARTMENT.DEPTNO, DEPCOUNT.ILOSC FROM DB2ADMIN.DEPARTMENT full JOIN (SELECT WORKDEPT, COUNT(*) AS ILOSC FROM DB2ADMIN.EMPLOYEE GROUP BY WORKDEPT) AS DEPCOUNT ON DB2ADMIN.DEPARTMENT.DEPTNO = DEPCOUNT.WORKDEPT Where DEPCOUNT.ILOSC is null;
+	select d.deptname, e.lastname from DEPARTMENT d left join EMPLOYEE e on d.deptno = e.workdept where e.lastname is null;
+	select d.deptname, e.lastname from EMPLOYEE e right join DEPARTMENT d on d.deptno = e.workdept where e.lastname is null;
+	select d.deptname from DEPARTMENT d where d.deptno not in (select distinct workdept from employee);
+6wyswietliæ pracowników oraz obok ich zastêpców na tym samym stanowisku. 
+	select e.firstnme "IMIÊ PRACOWNIKA", e.lastname "NAZWISKO PRACOWNIKA", e.job "STANOWISKO",e1.firstnme "IMIÊ ODPOWIEDNIKA",e1.lastname "NAZWISKO ODPOWIEDNIKA" from db2admin.employee e inner join db2admin.employee e1 on  e.job=e1.job where e.lastname < e1.lastname;
+7ilu pracowników pracuje w danym dziale 
+	SELECT DB2ADMIN.DEPARTMENT.DEPTNO, DEPCOUNT.ILOSC FROM DB2ADMIN.DEPARTMENT FULL OUTER JOIN ( SELECT WORKDEPT, COUNT(*) AS ILOSC FROM DB2ADMIN.EMPLOYEE GROUP BY WORKDEPT) AS DEPCOUNT ON DB2ADMIN.DEPARTMENT.DEPTNO = DEPCOUNT.WORKDEPT;
+8podaj jaki pracownik ma pensje wiêksz¹ od œredniej penski liczonej ze wszystkich pracowników
+	select * from employee where salary > (select AVG(salary) from employee);
+9wybrac wszystkich pracownkoow ktorzy zarabiaj¹ wiêcej ni¿ ktokolwiek w departamencie a00
+	select * from employee where salary > (SELECT max(salary) from employee where workdept = 'A00');
+	select e.lastname, e.firstnme, e.salary from db2admin.employee e where e.salary > ANY(select distinct salary from employee where workdept in 'A00') order by salary;
+10 wybraæ stanowisko na którym sa najnizsze œrednie zarobki
+		select * from (select job, sum(salary) as suma, count(*) as ilosc, (sum(salary)/count(*)) as avgg from employee group by job) where avgg = (select min(avgg) from (select job, sum(salary) as suma, count(*) as ilosc, (sum(salary)/count(*)) as avgg from employee group by job));
+		select job aaa , avg(salary) zzz from employee group by job having avg(salary) in ( select min(zzz) from (select job aaa , avg(salary) zzz from employee group by job order by 2 asc) xxx )
+////////////////////////////////
+//////////TYPY DANYCH///////////
+////////////////////////////////
+perspektywa administrowanie baz¹ danych
+DB2STUDIO
+bazatt --> obiekty aplikacji --> typy zdefiniowane --> utwórz odrêbny typ ...
+Du¿e litery !!! --> zapisz --> generuj dll --> wdró¿
+CREATE DISTINCT TYPE DB2ADMIN.TYPDANYCH1 AS VARCHAR(32) WITH COMPARISONS;
+////////////////////////////////
+///////////SCHEMATY/////////////
+////////////////////////////////
+perspektywa administrowanie baz¹ danych
+DB2STUDIO
+schematy --> utwóz schemat
+Du¿e litery !!! --> zapisz --> generuj dll --> wdró¿
+CREATE SCHEMA SCHEMAT1;
+CREATE TABLE SCHEMAT1.TABELA1 ( IDSTUDENTA INTEGER NOT NULL, NAZWISKO VARCHAR(25), OCENASH DB2ADMIN.TYPDANYCH1,PRIMARY KEY ( IDSTUDENTA ) );
+////////////////////////////////
+////////////WIDOKI//////////////
+////////////////////////////////
+Create TABLE SCHEMAT1.STUDENCI ( IDSTUDENTA INTEGER NOT NULL, NAZWISKO VARCHAR(25), OCENA DB2ADMIN.TYPDANYCH1,PRIMARY KEY ( IDSTUDENTA ));
+insert into SCHEMAT1.STUDENCI (IDSTUDENTA, NAZWISKO, OCENA) values (1, 'wozniak', '5');
+insert into SCHEMAT1.STUDENCI (IDSTUDENTA, NAZWISKO, OCENA) values (3, 'czubak', '3');
+
+CREATE OR REPLACE VIEW WIDOK22 AS SELECT NAZWISKO, IDSTUDENTA FROM SCHEMAT1.STUDENCI WHERE IDSTUDENTA <  5;
+SELECT * FROM WIDOK22;
+
+CREATE OR REPLACE VIEW WIDOK33 AS SELECT NAZWISKO, IDSTUDENTA FROM SCHEMAT1.STUDENCI WHERE IDSTUDENTA <  5 WITH CASCADED CHECK OPTION;
+SELECT * FROM WIDOK33;
+
+INSERT INTO WIDOK22 VALUES('abc',666); //OKKK
+INSERT INTO WIDOK33 VALUES('abc',667); //ZLE bo sprawdza warunki Wiersz wynikowy operacji wstawiania lub aktualizacji nie jest zgodny z definicj¹ widoku
+////////////////////////
+///////PROCEDUTY////////
+////////////////////////
+datastudio --> bazatt --> obiekty aplikacji -> procedury sk³adowane ->ppm i nowa 
+CREATE PROCEDURE PIERWSZA (IN Z1 INT,IN Z2 INT, OUT Z3 INTEGER)
+P1: BEGIN 
+	SET Z3=Z1+Z2;
+END P1
+ppm i wdra¿aj 
+play
+ppm i uruchom
+teraz odpalamy ja z terminala
+db2 call PIERWSZA(1,1,?)
+//P1 jest od przeci¹¿eñ tak jak w programowaniu
+CREATE PROCEDURE ZZZ (IN Z1 INT,IN Z2 INT, OUT Z3 INTEGER)
+P1: BEGIN
+	DECLARE w1 INT;
+	DECLARE w2 INT;
+	DECLARE w3 INT;
+	set w1 = 20;
+	set w2 = 10;
+	call PIERWSZA(w1,w2,w3);
+	set Z3 = Z1*Z2*w3;
+END P1
+//////////////////////
+Opracowaæ procedurê z 2 parametrami wejœciowymi departament i 
+stanowiskoPracy
+w której to procedurze bêdzie zdefiniowany kursor wyliczaj¹cy ilu mamy 
+pracowników 
+pracuj¹cych w danym departamencie na danym stanowisku
+z kursora wartoœæ przelaæ do zmiennej i zwróciæ przez parametr 
+wyjœciowy
+	w przypadku braku pracowników pracuj¹cych w danym 
+departamencie na 
+	danym stanowisku zwróciæ wartoœæ 0 
+CREATE PROCEDURE ZZZ (IN DEPARTMENT INT,IN STANOWISKO INT, OUT ILOSCPRACOWNIKOW INTEGER)
+P1: BEGIN
+	DECLARE cur1 CURSOR FOR SELECT EMPNO FROM employee WHERE workdept = DEPARTMENT and job = STANOWISKO;
+	DECLARE w1 INT;
+	DECLARE w2 INT;
+	DECLARE w3 INT;
+	set w1 = 20;
+	set w2 = 10;
+	call PIERWSZA(w1,w2,w3);
+	set Z3 = Z1*Z2*w3;
+END P1
+////////////////////////
+//FUNKCJA TABELARYCZNA//
+////////////////////////
+opracowaæ funkcjê tabelaryczna ktora zwroci identyfikator pracownika nazwisko oraz jego imie z departamentu podanego jako parametr
+datastudio --> bazatt --> obiekty aplikacji -> funkcje zdefiniowane przez u¿ytkownika ->ppm i nowa 
+ostatnie tabelaryczna lub przedostatnie
+CREATE FUNCTION FUNKCJA2 (p_dept VARCHAR(3))
+RETURNS TABLE (
+	empno CHAR(6),
+	lastname VARCHAR(15),
+	firstnme VARCHAR(12))
+SPECIFIC fu2
+return
+	 select e.empno, e.lastname, e.firstnme
+	 from employee e
+	 where e.workdept=p_dept
+WDRAZAMY
+//////////////////////
+select * from table(FUNKCJA2('D11')) AS t;
+////////////////////////
+////////SEKWENCJE///////
+////////////////////////
+DATA STUDIO
+ppm na sekwencje
+CREATE SEQUENCE DB2ADMIN.SEKWENCJA2 AS INTEGER START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE NO ORDER CACHE 20;
+create sequence seq1;
+select sek1.nextval from sysibm.dual;
+
+VALUES NEXTVAL FOR sekwencja1 ;
+VALUES PREVVAL FOR sekwencja1 ;
+ALTER SEQUENCE sekwencja1 RESTART WITH 100 ;
+////////////////////////
+////////TRIGGERY////////
+////////////////////////
+CREATE TABLE DB2ADMIN.TEST ( A1 INTEGER NOT NULL, A2 CHAR(5), A3 CHAR(5), A4 INTEGER,PRIMARY KEY ( A1 ) );
+create sequence SEKW1;
+select SEKW1.nextval from sysibm.dual;
+select nextval for SEKW1 from sysibm.dual;
+
+CREATE TRIGGER DB2ADMIN.TRIGGER_AUTONUMERACJA NO CASCADE BEFORE INSERT ON DB2ADMIN.TEST REFERENCING NEW AS NEW FOR EACH ROW MODE DB2SQL NOT SECURED
+BEGIN 
+SET NEW.A1=NEXTVAL FOR SEKW1;
+END!
+
+zalozyc tabele test_II w schemacie db2 admin z kolumnami takimi jak w tabeli test w ktorej 
+rejestrowane beda kopie krotek  wstawianych do tabeli test 
+create or replace trigger wstaw_ss
+after insert on test
+reffering new as new 
+for each row
+begin
+insert into test_II values (NEW.A1, NEW.A2, NEW.A3, NEW.A4);
+end
+////////////////////////
+///////SQL SKRÓT////////
+////////////////////////
+####################################SHEMAT
+CREATE SCHEMA SCHEMAT_PW;
+####################################TABELA
+CREATE TABLE SCHEMAT_PW.KATEGORIA1 ( IDKATEGORII INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ( START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 20 ), NAZWAKATEGORII CHAR(5),PRIMARY KEY ( IDKATEGORII ) );
+##############BEZ PK
+CREATE TABLE SCHEMAT_PW.KATEGORIA1 ( IDKATEGORII INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ( START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 20 ), NAZWAKATEGORII CHAR(5) );
+####################################ALTER TABLE PK
+ALTER TABLE SCHEMAT_PW.KATEGORIA1 ADD CONSTRAINT KATEGORIA1_PK PRIMARY KEY ( IDKATEGORII );
+###################################OGRANICEANIA
+ALTER TABLE KOLO.PRODUKT ADD CONSTRAINT CC1366793345612 (CENA>0) ENFORCED ENABLE QUERY OPTIMIZATION;
+################################### FOREGIN KEY
+CREATE TABLE KOLO.PRODUKT1 ( IDPRODUKTU INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ( START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 20 ), IDKATEGORII INTEGER NOT NULL, NAZWA VARCHAR(20), CENA INTEGER, ILOSC INTEGER );
+ALTER TABLE SCHEMAT_PW.PRODUKT1 ADD FOREIGN KEY (IDKATEGORII)  REFERENCES SCHEMAT_PW.KATEGORIA1(IDKATEGORII)
+################################### INSERT
+INSERT INTO SCHEMAT_PW.KATEGORIA1 (NAZWAKATEGORII) VALUES ('KAT1');
+SELECT * FROM SCHEMAT_PW.KATEGORIA1;  //id kategorii 20
+INSERT INTO SCHEMAT_PW.PRODUKT1 (IDKATEGORII, CENA, ILOSC) VALUES (2,4.35,8);
+################################### DELETE
+DELETE FROM SCHEMAT_PW.PRODUKT1 WHERE IDKATEGORII = 2;
+################################### UPDATE
+INSERT INTO SCHEMAT_PW.PRODUKT1 (NAZWA, IDKATEGORII, CENA, ILOSC) VALUES ('PILKA',2,4.35,8);
+INSERT INTO SCHEMAT_PW.PRODUKT1 (NAZWA, IDKATEGORII, CENA, ILOSC) VALUES ('RAKIETA',2,4.35,8);
+UPDATE SCHEMAT_PW.PRODUKT1 SET  NAZWA = 'PILECZKA' WHERE NAZWA = 'PILKA';
+
+
+////////////////////////
+/////////FURA///////////
+////////////////////////
+Pawe³ Czubak 201520
+pawel33317@gmail.com
+baza: ZAL
+AD.1.
+db2ilist
+db2icrt MF
+set db2instance=MF1
+db2 get instance
+db2start
+db2sampl -name ZAL
+db2set db2comm=tcpip
+db2stop
+db2start
+db2 update dbm cfg using svcename db2cDB2MF
+db2stop
+db2start
+AD.2.
+db2 connect to ZAL
+db2 create schema KOLO
+CREATE TABLE KOLO.KATEGORIA ( IDKATEGORII INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ( START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 20 ), NAZWAKATEGORII VARCHAR(20) NOT NULL );
+ALTER TABLE KOLO.KATEGORIA ADD CONSTRAINT KATEGORIA_PK PRIMARY KEY ( IDKATEGORII );
+CREATE TABLE KOLO.PRODUKT ( IDPRODUKTU INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY ( START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 20 ), IDKATEGORII INTEGER NOT NULL, NAZWA VARCHAR(20), CENA INTEGER, ILOSC INTEGER );
+ALTER TABLE KOLO.PRODUKT ADD CONSTRAINT PRODUKT_PK PRIMARY KEY ( IDPRODUKTU );
+CREATE SEQUENCE KOLO.SEQ1 AS INTEGER START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE NO ORDER CACHE 20;
+CREATE TRIGGER KOLO.NEW AFTER INSERT ON KOLO.PRODUKT REFERENCING NEW TABLE AS SET NEW.IDPRODUKT = NEXTVAL FOR SEQ1 FOR EACH STATEMENT MODE DB2SQL;
+ALTER TABLE KOLO.KATEGORIA ADD CONSTRAINT CC1366793271103 PRIMARY KEY (IDKATEGORII);
+ALTER TABLE KOLO.PRODUKT ADD CONSTRAINT CC1366793272341 PRIMARY KEY (IDPRODUKTU);
+ALTER TABLE KOLO.PRODUKT ADD CONSTRAINT CC1366793345612 (CENA>0) ENFORCED ENABLE QUERY OPTIMIZATION;
+ALTER TABLE KOLO.PRODUKT ADD CONSTRAINT CC1366793346321 (ILOSC BETWEEN 0 AND 100) ENFORCED ENABLE QUERY OPTIMIZATION;
+AD.3.
+CREATE VIEW KOLO.VIEW1 AS
+SELECT kk.NAZWAKATEGORII, kp.CENA, kp.ILOSC
+FROM KOLO.KATEGORIA as kk, KOLO.PRODUKT as kp
+WHERE kp.ILOSC > 0 AND kp.CENA > 0;
+////////////////////////
+//////////IZA///////////
+////////////////////////
+Zadanie1--wydac polecenie tworzenia nowej instancji o nazwie DBA, podlaczenie sie do tej instancji i stworzenie bazy sample,
+db2icrt
+set db2instance=DBA
+db2start
+db2sampl -sql -xml
+sb2 connect to sample
+--stworzyc schemat KOLO i tabele STUDENT z polami NRSTUDENTA(zapewniona autoinkrementacja), NAZWISKO, OCENA
+Nastepnie:
+-zmodyfikuj tabele STUDENT zakladajac warunek klucza Primary Key na pole NRSTUDENTA
+-zmodyfikuj tabele STUDENT zakladajac warunek CHECK (pole OCENA) tak by mozliwe bylo wprowadzanie rekordow tylko dla zakresu wartosci od 2 do 5
+db2 create schema KOLO AUTHOTIZATION DB2ADMIN
+ALTER TABLE STUDENT ADD CONSTRAINT  SPR_OCENE CHECK (OCENA BETWEEN 2 AND 5);
+-- zdefiniuj widok VIEW1 ktory zwroci informacje z tabeli STUDENT dla warunku, ze pole OCENA jest dla wartosci z przedzialu 
+3-5 przez ktory mozliwe bedzie wprowadzanie tylko ocen zaliczajacych (z przedzialu 3-5)
+-- nastepnie zdefiniuj widok  VIEW2 (na widoku VIEW1) ktory zwroci informacje o studentach i srednia ocen
+CREATE VIEW widok1 AS SELECT * FROM KOLO.STUDENT WHERE OCENA IN(3,4,5) WITH LOCAL CHECK OPTION;
+INSERT INTO widok1(NAZWISKO,OCENA) VALUES('BACZYNSKI',5);
+INSERT INTO widok1(NAZWISKO,OCENA) VALUES('BACZYNSKI',6);
+-- zalozyc wyzywalac INSTEAD OF na widoku view2 (poniewaz view2 jest nieedytowalny)
+ZADANIE 5
+-- napisac procedure ktora wyliczy cos z tabeli
+ZADANIE 6
+-- z pure xml cos jeszcze
+////////////////////////
+////////DODATKI/////////
+////////////////////////
+having narzuca kryterium na agregacji a where na krotki				
+distinct eliminuje powtórzenia
+ró¿nica miêdzy in a =  w in wiele wartoœci
+relacje budujemy w zapytaniach

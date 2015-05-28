@@ -1,0 +1,35 @@
+Wszystko z kilumny customer.info
+XQUERY db2-fn:xmlcolumn('DB2ADMIN.CUSTOMER.INFO')
+XQUERY db2-fn:xmlcolumn('CUSTOMER.INFO')
+XQUERY db2-fn:sqlquery('SELECT INFO FROM CUSTOMER')
+
+//uzyj xquery i sqlquery aby pobrac info z tabeli customer gdzie  cid = 1002
+	XQUERY db2-fn:sqlquery('select INFO from CUSTOMER where CID = 1002')
+
+//xquery xmlcolumn z customer.info pobrac wszystkie nazwy klientów jezeli  //w elemencie adres miasto jest toronto
+	XQUERY db2-fn:xmlcolumn('CUSTOMER.INFO')/customerinfo[addr/city="Toronto"]/name/text();
+
+//xml-column zliczyæ liczbe produktów których cena jest mniejsza ni¿ 100
+	xquery count (db2-fn:xmlcolumn ('PRODUCT.DESCRIPTION')/product/description[price < 100]);
+
+cena maksymalna , srednia cena wyliczona ze wszystkich produlktów sk³adowanych na strukturze hierarhicznej 
+	xquery min (db2-fn:xmlcolumn ('PRODUCT.DESCRIPTION')/product/description/price);
+	xquery avg (db2-fn:xmlcolumn ('PRODUCT.DESCRIPTION')/product/description/price);
+	xquery count (db2-fn:xmlcolumn ('PRODUCT.DESCRIPTION')/product/description/price);
+	xquery max (db2-fn:xmlcolumn ('PRODUCT.DESCRIPTION')/product/description/price);
+
+utworzyæ nowy dokument xml z nowym elementem root o nazwie produkty ktory zawiera wszystkie nazwy produktów, ktorych cena jest mniejsza niz 100
+	xquery
+	<CostlyProducts>
+	{db2-fn:xmlcolumn
+	('PRODUCT.DESCRIPTION')/product/description[price < 100]/name}
+	</CostlyProducts>;
+
+//xquery i ... do wyswietlenia listy nazw wszystkich klientow w kolejnosci alfabetycznej
+na wyjœciu skalar w postaci tekstu //alfabetyczna lista a nie xml
+XQUERY 
+for $customer in db2-fn:xmlcolumn('DB2ADMIN.CUSTOMER.INFO')/customerinfo
+let $cname := $customer/name
+order by $cname
+return $cname/text()
+//w powy¿szym zapytaniu mo¿e byc te¿ where

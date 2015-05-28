@@ -1,0 +1,123 @@
+podczas backumpu u¿ytkownicy nie maj¹ dostepu do bazy bo s¹ w³¹czone dzienniki cykliczne
+
+Tworzymy backump bez kompresji 
+	CONNECT TO SAMPLE;
+	QUIESCE DATABASE IMMEDIATE FORCE CONNECTIONS; //wyciszanie bazy
+	CONNECT RESET;//BACKUP DATABASE SAMPLE TO "C:\DB2SR\backump" tylko w db2+c
+	BACKUP DATABASE SAMPLE TO "C:\DB2SR\backump" WITH 2 BUFFERS BUFFER 1024 PARALLELISM 1 WITHOUT PROMPTING;
+	CONNECT TO SAMPLE;
+	UNQUIESCE DATABASE;
+	CONNECT RESET;
+
+z kompresj¹
+	CONNECT TO SAMPLE;
+	QUIESCE DATABASE IMMEDIATE FORCE CONNECTIONS;
+	CONNECT RESET;
+	BACKUP DATABASE SAMPLE TO "C:\DB2SR\backump" WITH 2 BUFFERS BUFFER 1024 PARALLELISM 1 COMPRESS  WITHOUT PROMPTING;
+	CONNECT TO SAMPLE;
+	UNQUIESCE DATABASE;
+	CONNECT RESET;
+
+
+baza -> konfiguruj parametry i s¹ tam dzienniki transakzji
+
+Przestawiamy dzienniki w tryb archiwalny 
+db2 list history backup all for database sample //plik historii bazy
+db2 get db cfg for sample | findstr log //ustawienia dziennikow
+ 
+Ustawiamy iloœæ logów
+	logi aktywne maj¹ niezacommitowane transakcje jak nie ma miejsca w primary to wrzuca do secondary
+db2 update database configuration for sample using LOGPRIMARY 5 
+db2 update database configuration for sample using LOGSECOND 3 
+
+ 
+	db2 ma 2 modele loggin : circular, archiwal 
+	circular - backumpy tylko offline nie ma przechowywania w logach ci¹³ych danych bo s¹ nadpisywane przez kolejne 
+	To enable circular logging, set both LOGARCHMETH1 and LOGARCHMETH2 database configuration parameters to OFF
+	Roll-forward recovery is not possible Only crash recovery and version recovery are available.
+
+	archival logi s¹ trzymane i nie nadpisywane nigdy mo¿na robiæ backumpy online  i rolll forward recovery 
+	To enable archival logging, you will need to specify the value of LOGARCHMETH1 to something other than OFF. If both LOGARCHMETH1 and LOGARCHMETH2 have beenspecified, then archive logs are archived twice.
+
+w³¹czamy archiwal 
+db2 update db cfg for sample using LOGARCHMETH1 disk:"C:\DB2SR\dzienniki"
+db2 terminate 
+db2 connect to sample 
+
+nie mo¿na siê po³¹czyæ bo trzeba utworzyæ pierwszy full backump
+db2 backup database sample to "C:\DB2SR\backump"
+db2 connect to sample  i dziala ok 
+
+
+lista backumpów
+db2 list history backup all for database sample 
+
+
+"przypadkowo" wywalamy bazê 
+db2 force applications all 
+db2 drop database sample 
+
+db2 connect to sample  i error bo nie ma bazy
+
+przywracamy baze z backumpu ----zam czas z pliku
+db2 restore database sample from "C:\DB2SR\backump" taken at 20150415150648 without rolling forward 
+db2 connect to sample   i ok 
+
+
+rooling forward proces przywracania backumpu z poniedzialku i wprowadzenie zmian z logów do œrody gdy¿ w œrodê baza zaginela i ja przywracamy
+w sytuacji np usuniecia wielu rekordów przez usera lepiej zrobiæ zamiast rool forward - point in time 
+
+db2 connect to sample 
+db2 "select count(*) from staff"	//35
+
+db2 "delete from staff where dept=10"
+db2 "select count(*) from staff"	//31
+
+date +%F-%H.%M.%S  ----- win time   15:21:01,45
+date i ustawiamy date
+
+db2 "select count(*) from employee"	//42
+db2 "delete from employee where edlevel=12"
+db2 "select count(*) from employee" //39
+
+teraz chcemy cofn¹æ siê do czasu po usuniêciu ze staff ale przed usuniêciem z employee
+//cofamy siê do backumpu
+db2 restore database sample from "C:\DB2SR\backump" taken at 20150415150648 without prompting 
+zmiana czasu na taki format
+db2 rollforward db sample to 2015-04-15-15.21.01 using local time
+
+po minucie 
+db2 rollforward database sample stop 
+db2 connect to sample 
+db2 "select count(*) from staff"
+db2 "select count(*) from employee"
+2015-04-15-15.32.11
+
+
+4.3 Scenario 3 – Incremental Backup and Restore
+4.3.1
+
+jak sa duze bazy to robimy tylko backumpy tego co sie dzialo od ostatniego pelnego backumpu
+
+wlaczamy trackmod 
+db2 connect to sample 
+db2 update db cfg for sample using TRACKMOD ON 
+db2 terminate 
+db2 connect to sample 
+//robimy pierwszy pelny backump zeby sie do nmiego odnosic
+db2 backup database sample online to "C:\DB2SR\backump"
+//zapisujemy czas date i time 
+2015-04-18-13.53.49
+
+//cos zmieniamy
+db2 connect to sample 
+db2 "update staff set salary=salary*0.9"
+//robimy czesciowy backump tylko tych zmian 
+db2 backup db sample incremental to "C:\DB2SR\backump"
+//zapisujemy czas date i time 
+2015-04-18-13.56.27
+
+//Przywracanie czesciowego backumpu
+db2ckrst –d sample –t 20150418135627 !!!!!!cos nie dziala return -11
+
+db2 "restore db sample incremental automatic from  "C:\DB2SR\backump" taken at 20150418135627" 
